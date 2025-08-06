@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { AppState, CarInfo, Cause, Video, GroundingChunk, DiagnoseRequest } from './types';
-import { diagnoseIssue, findFixVideos } from './services/geminiService';
+import { diagnoseIssue, findFixVideos, getCostEstimate } from './services/geminiService';
 import Header from './components/Header';
 import IssueInputForm from './components/IssueInputForm';
 import DiagnosisResults from './components/DiagnosisResults';
@@ -46,7 +46,7 @@ export default function App() {
     }
   }, []);
 
-  const handleFindVideos = useCallback(async (cause: Cause) => {
+  const handleSelectCause = useCallback(async (cause: Cause) => {
     if (!carInfo) return;
     setAppState(AppState.FETCHING_VIDEOS);
     setSelectedCause(cause);
@@ -55,20 +55,33 @@ export default function App() {
     setGroundingChunks([]);
 
     try {
-      const result = await findFixVideos(carInfo, cause.cause);
-      if (result && result.videos.length > 0) {
-        setVideos(result.videos);
-        setGroundingChunks(result.sources);
-        setAppState(AppState.VIDEOS_FOUND);
-      } else {
-        setError("Couldn't find any video tutorials for this issue. You can try another cause or start over.");
-        setAppState(AppState.ERROR);
+      // Run fetching videos and costs in parallel for speed
+      const [videoResult, costResult] = await Promise.all([
+        findFixVideos(carInfo, cause.cause),
+        getCostEstimate(carInfo, cause)
+      ]);
+
+      // Update costs in the state
+      if (costResult) {
+        setCauses(prevCauses =>
+          prevCauses.map(c =>
+            c.cause === cause.cause ? { ...c, ...costResult } : c
+          )
+        );
       }
+      
+      // Update videos and sources
+      setVideos(videoResult?.videos || []);
+      setGroundingChunks(videoResult?.sources || []);
+      
+      // Move to the final state to display results
+      setAppState(AppState.VIDEOS_FOUND);
+
     } catch (e) {
       console.error(e);
-      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred while fetching videos.';
-      setError(`Failed to find videos: ${errorMessage}`);
-      setAppState(AppState.ERROR);
+      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred while fetching details.';
+      setError(`Failed to get details: ${errorMessage}`);
+      setAppState(AppState.ERROR); // Fallback to error state for critical failures
     }
   }, [carInfo]);
 
@@ -89,7 +102,7 @@ export default function App() {
       case AppState.DIAGNOSING:
         return 'Diagnosing issue...';
       case AppState.FETCHING_VIDEOS:
-        return 'Searching for tutorials...';
+        return 'Finding videos & cost estimates...';
       default:
         return 'Loading...';
     }
@@ -134,8 +147,9 @@ export default function App() {
             <DiagnosisResults
               carInfo={carInfo}
               causes={causes}
-              onSelectCause={handleFindVideos}
+              onSelectCause={handleSelectCause}
               selectedCause={selectedCause}
+              appState={appState}
               isDisabled={appState === AppState.FETCHING_VIDEOS || appState === AppState.VIDEOS_FOUND}
             />
           )}
