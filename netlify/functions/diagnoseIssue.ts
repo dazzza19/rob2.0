@@ -71,15 +71,17 @@ export default async (req: Request): Promise<Response> => {
     const carInfo: CarInfo = await req.json();
     
     const prompt = `
-      Vehicle: ${carInfo.year} ${carInfo.make} ${carInfo.model}.
-      Location: UK.
-      Problem: "${carInfo.description}".
+      Diagnose a vehicle issue for a ${carInfo.year} ${carInfo.make} ${carInfo.model} located in the UK.
+      The user reported this problem: "${carInfo.description}".
 
-      Task:
-      1. Identify top 3 most likely causes.
-      2. For each cause, list required repair parts.
-      3. For each cause, estimate repair costs in GBP (£) for both independent garages and main dealers in the UK.
-      Provide the output in the specified JSON format.
+      Your task is to identify the top 2 most likely causes.
+
+      For each cause, you must provide:
+      1. A brief reasoning.
+      2. A list of required parts for the repair.
+      3. Estimated repair costs in GBP (£) for both independent garages and main dealers.
+      
+      You must respond in the required JSON format.
     `;
 
     const response = await ai.models.generateContent({
@@ -88,22 +90,24 @@ export default async (req: Request): Promise<Response> => {
       config: {
         responseMimeType: "application/json",
         responseSchema: diagnosisSchema,
-        systemInstruction: "You are an expert AI mechanic with a specialization in the UK automotive market. Your goal is to diagnose car problems based on user descriptions. You MUST provide concise, likely causes, a list of required parts, and estimated repair costs in GBP (£) for BOTH independent garages and main dealers in the requested JSON format.",
+        systemInstruction: "You are an expert AI mechanic for the UK market. Your primary goal is speed and accuracy. Provide a concise diagnosis based on the user's input. You MUST strictly adhere to the provided JSON schema and return results as quickly as possible.",
         thinkingConfig: { thinkingBudget: 0 },
       },
     });
 
     const jsonText = response.text.trim();
-    // It's good practice to handle potential malformed JSON, even with schema enforcement.
     try {
         const result = JSON.parse(jsonText);
+        if (!result.causes || !Array.isArray(result.causes)) {
+          throw new Error("AI response did not contain a valid 'causes' array.");
+        }
         return new Response(JSON.stringify(result), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
         });
     } catch(e) {
-        console.error("Failed to parse diagnosis JSON:", jsonText);
-        return new Response(JSON.stringify({ error: "AI returned a malformed diagnosis. Please try again." }), {
+        console.error("Failed to parse diagnosis JSON:", jsonText, e);
+        return new Response(JSON.stringify({ error: "The AI returned an invalid diagnosis format. Please try rephrasing your issue." }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' },
         });
@@ -112,7 +116,7 @@ export default async (req: Request): Promise<Response> => {
   } catch (error) {
     console.error("Error in Netlify function diagnoseIssue:", error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-    return new Response(JSON.stringify({ error: `Failed to get a diagnosis from the AI service: ${errorMessage}` }), {
+    return new Response(JSON.stringify({ error: `The AI diagnosis service failed: ${errorMessage}` }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
     });
