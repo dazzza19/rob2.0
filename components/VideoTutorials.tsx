@@ -13,7 +13,6 @@ interface VideoTutorialsProps {
 }
 
 const VideoTutorials: React.FC<VideoTutorialsProps> = ({ videos, sources, carInfo, causes }) => {
-  if (videos.length === 0) return null;
 
   const handleEmail = () => {
     const subject = `ROB 2.0 AI Diagnosis for ${carInfo.year} ${carInfo.make} ${carInfo.model}`;
@@ -71,30 +70,39 @@ const VideoTutorials: React.FC<VideoTutorialsProps> = ({ videos, sources, carInf
           Email Diagnosis Summary
         </button>
       </div>
-      <div className="space-y-4">
-        {videos.map((video, index) => (
-          <a
-            key={index}
-            href={video.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block group bg-gray-700/50 p-4 rounded-lg hover:bg-gray-700 transition-colors duration-200"
-            aria-label={`Watch video: ${video.title}`}
-          >
-            <div className="flex items-start gap-4">
-              <YoutubeIcon className="w-8 h-8 text-red-500 flex-shrink-0 mt-1" />
-              <div>
-                <h3 className="font-semibold text-lg text-gray-100 group-hover:text-indigo-300 transition-colors">{video.title}</h3>
-                <p className="text-gray-300 mt-1">{video.summary}</p>
+
+      {videos.length > 0 ? (
+        <div className="space-y-4">
+          {videos.map((video, index) => (
+            <a
+              key={index}
+              href={video.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block group bg-gray-700/50 p-4 rounded-lg hover:bg-gray-700 transition-colors duration-200"
+              aria-label={`Watch video: ${video.title}`}
+            >
+              <div className="flex items-start gap-4">
+                <YoutubeIcon className="w-8 h-8 text-red-500 flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="font-semibold text-lg text-gray-100 group-hover:text-indigo-300 transition-colors">{video.title}</h3>
+                  <p className="text-gray-300 mt-1">{video.summary}</p>
+                </div>
               </div>
-            </div>
-          </a>
-        ))}
-      </div>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center p-4 bg-gray-900/40 rounded-lg border border-gray-700">
+            <p className="font-medium text-gray-300">No video tutorials were found for this issue.</p>
+            <p className="text-sm text-gray-400 mt-1">Try another cause, or use the part search links above.</p>
+        </div>
+      )}
+
       {sources.length > 0 && (
         <div className="mt-8 pt-6 border-t border-gray-700">
           <h3 className="text-lg font-semibold text-gray-200">Sources</h3>
-          <p className="text-sm text-gray-400 mb-4">These tutorials were found using information from the following web pages:</p>
+          <p className="text-sm text-gray-400 mb-4">The search for tutorials used information from the following pages:</p>
           <ul className="space-y-2">
             {sources.map((source, index) => (
               <li key={index}>
