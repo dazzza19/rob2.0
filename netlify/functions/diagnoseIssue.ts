@@ -71,15 +71,16 @@ export default async (req: Request): Promise<Response> => {
     const carInfo: CarInfo = await req.json();
     
     const prompt = `
-    A user in the UK is reporting an issue with their ${carInfo.year} ${carInfo.make} ${carInfo.model}.
-    The problem description is: "${carInfo.description}".
+      Vehicle: ${carInfo.year} ${carInfo.make} ${carInfo.model}.
+      Location: UK.
+      Problem: "${carInfo.description}".
 
-    Based on this information:
-    1.  Provide the top 3 most likely causes relevant to the UK market.
-    2.  For each cause, list the specific parts typically required for the repair.
-    3.  For each cause, provide a rough cost estimate range (minimum and maximum) in GBP (£) for the repair at an independent, non-dealership garage in the United Kingdom.
-    4.  For each cause, provide a rough cost estimate range (minimum and maximum) in GBP (£) for the same repair at a main franchise dealer in the United Kingdom.
-  `;
+      Task:
+      1. Identify top 3 most likely causes.
+      2. For each cause, list required repair parts.
+      3. For each cause, estimate repair costs in GBP (£) for both independent garages and main dealers in the UK.
+      Provide the output in the specified JSON format.
+    `;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -88,6 +89,7 @@ export default async (req: Request): Promise<Response> => {
         responseMimeType: "application/json",
         responseSchema: diagnosisSchema,
         systemInstruction: "You are an expert AI mechanic with a specialization in the UK automotive market. Your goal is to diagnose car problems based on user descriptions. You MUST provide concise, likely causes, a list of required parts, and estimated repair costs in GBP (£) for BOTH independent garages and main dealers in the requested JSON format.",
+        thinkingConfig: { thinkingBudget: 0 },
       },
     });
 
