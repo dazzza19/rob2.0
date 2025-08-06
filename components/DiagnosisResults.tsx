@@ -1,5 +1,6 @@
+
 import React from 'react';
-import type { Cause, CarInfo } from '../types';
+import type { Cause, CarInfo, AppState } from '../types';
 import { ChevronRightIcon } from './icons/ChevronRightIcon';
 import { MoneyIcon } from './icons/MoneyIcon';
 import { BuildingIcon } from './icons/BuildingIcon';
@@ -10,6 +11,7 @@ interface DiagnosisResultsProps {
   onSelectCause: (cause: Cause) => void;
   selectedCause: Cause | null;
   isDisabled: boolean;
+  appState: AppState;
 }
 
 interface Retailer {
@@ -23,7 +25,7 @@ const retailers: Retailer[] = [
   { name: 'Google', url: 'https://www.google.com/search?q=' },
 ];
 
-const DiagnosisResults: React.FC<DiagnosisResultsProps> = ({ carInfo, causes, onSelectCause, selectedCause, isDisabled }) => {
+const DiagnosisResults: React.FC<DiagnosisResultsProps> = ({ carInfo, causes, onSelectCause, selectedCause, isDisabled, appState }) => {
   if (causes.length === 0) return null;
 
   return (
