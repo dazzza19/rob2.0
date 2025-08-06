@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "https://esm.sh/@google/genai@^1.12.0";
 import type { CarInfo, Cause } from '../../types.ts';
 
@@ -26,22 +27,6 @@ const diagnosisSchema = {
             items: {
               type: Type.STRING,
             }
-          },
-          estimatedCostMin: {
-            type: Type.NUMBER,
-            description: "The estimated minimum cost in GBP (£) for the repair at an independent garage in the UK.",
-          },
-          estimatedCostMax: {
-            type: Type.NUMBER,
-            description: "The estimated maximum cost in GBP (£) for the repair at an independent garage in the UK.",
-          },
-          dealerCostMin: {
-            type: Type.NUMBER,
-            description: "The estimated minimum cost in GBP (£) for the repair at a main franchise dealer in the UK.",
-          },
-          dealerCostMax: {
-            type: Type.NUMBER,
-            description: "The estimated maximum cost in GBP (£) for the repair at a main franchise dealer in the UK.",
           },
         },
         required: ["cause", "reasoning", "requiredParts"],
@@ -79,9 +64,8 @@ export default async (req: Request): Promise<Response> => {
       For each cause, you must provide:
       1. A brief reasoning.
       2. A list of required parts for the repair.
-      3. Estimated repair costs in GBP (£) for both independent garages and main dealers.
       
-      You must respond in the required JSON format.
+      Do NOT include cost estimates. You must respond in the required JSON format.
     `;
 
     const response = await ai.models.generateContent({
@@ -90,7 +74,7 @@ export default async (req: Request): Promise<Response> => {
       config: {
         responseMimeType: "application/json",
         responseSchema: diagnosisSchema,
-        systemInstruction: "You are an expert AI mechanic for the UK market. Your primary goal is speed and accuracy. Provide a concise diagnosis based on the user's input. You MUST strictly adhere to the provided JSON schema and return results as quickly as possible.",
+        systemInstruction: "You are an expert AI mechanic for the UK market. Your primary goal is speed and accuracy. Provide a concise diagnosis based on the user's input, focusing only on causes, reasoning, and required parts. You MUST strictly adhere to the provided JSON schema and return results as quickly as possible.",
         thinkingConfig: { thinkingBudget: 0 },
       },
     });
