@@ -1,16 +1,62 @@
 
-import type { CarInfo, DiagnosisResult } from '../../types.ts';
+import type { CarInfo, DiagnosisResult, Video } from '../../types.ts';
 
 const BRAVE_API_KEY = process.env.BRAVE_API_KEY;
 
-// Interface for Brave Web Search API results (covers both web and discussion types)
+// Interface for Brave Web Search API results
 interface BraveWebResult {
   title: string;
   url: string;
   description: string;
 }
 
-async function getWebResults(query: string): Promise<DiagnosisResult[]> {
+// Interface for Brave Video Search API results
+interface BraveVideoResult {
+  title: string;
+  url: string;
+  description: string;
+}
+
+async function findVideosForTerm(carInfo: CarInfo, cause: string): Promise<Video[]> {
+  if (!BRAVE_API_KEY) {
+    console.error("BRAVE_API_KEY not set. Skipping video search.");
+    return [];
+  }
+  
+  try {
+    const query = `${carInfo.year} ${carInfo.make} ${carInfo.model} ${cause} fix tutorial`;
+    const braveApiUrl = `https://api.search.brave.com/res/v1/videos/search?q=${encodeURIComponent(query)}&country=gb&spellcheck=true`;
+
+    const braveResponse = await fetch(braveApiUrl, {
+      headers: {
+        'X-Subscription-Token': BRAVE_API_KEY,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!braveResponse.ok) {
+      const errorText = await braveResponse.text();
+      console.error(`Brave Video API error for query "${query}":`, errorText);
+      return []; // Return empty array on failure, don't fail the whole diagnosis
+    }
+
+    const braveData = await braveResponse.json();
+    const results = braveData.results || [];
+    
+    // Return top 2 videos
+    return results.slice(0, 2).map((video: BraveVideoResult) => ({
+      title: video.title,
+      summary: video.description,
+      url: video.url,
+    }));
+  } catch (error) {
+    console.error(`Error fetching videos for query "${cause}":`, error);
+    return []; // Return empty on error
+  }
+}
+
+
+async function getWebResults(query: string): Promise<Omit<DiagnosisResult, 'videos'>[]> {
     if (!BRAVE_API_KEY) {
         console.error("BRAVE_API_KEY not set on server.");
         throw new Error("The server is missing the necessary API key for searches.");
@@ -33,19 +79,16 @@ async function getWebResults(query: string): Promise<DiagnosisResult[]> {
 
         const data = await response.json();
         
-        // Combine results from 'web' and 'discussions' for better diagnosis sources
         const webResults = data.web?.results || [];
         const discussionResults = data.discussions?.results || [];
         
-        // Type assertion as both result types have the shape we need.
         const combinedResults = [...webResults, ...discussionResults] as BraveWebResult[];
         
-        // Remove duplicates based on URL and ensure item has a URL
         const uniqueResults = combinedResults.filter((result, index, self) => 
             result.url && index === self.findIndex((r) => r.url === result.url)
         );
         
-        return uniqueResults.slice(0, 5).map((result: BraveWebResult) => ({
+        return uniqueResults.slice(0, 3).map((result: BraveWebResult) => ({
             title: result.title,
             url: result.url,
             description: result.description,
@@ -53,7 +96,6 @@ async function getWebResults(query: string): Promise<DiagnosisResult[]> {
 
     } catch (error) {
         console.error("Error fetching from Brave API:", error);
-        // Re-throw a more user-friendly error
         if (error instanceof Error && error.message.includes('The search service failed')) {
             throw error;
         }
@@ -71,11 +113,23 @@ export default async (req: Request): Promise<Response> => {
 
   try {
     const carInfo: CarInfo = await req.json();
-    // A less restrictive query, targeting forums and problem descriptions
     const searchQuery = `${carInfo.year} ${carInfo.make} ${carInfo.model} ${carInfo.description} problem forum solution`;
-    const results = await getWebResults(searchQuery);
+    
+    // 1. Get web results
+    const webResults = await getWebResults(searchQuery);
 
-    return new Response(JSON.stringify({ results }), {
+    // 2. For each web result, find associated videos in parallel
+    const resultsWithVideos: DiagnosisResult[] = await Promise.all(
+      webResults.map(async (webResult) => {
+        const videos = await findVideosForTerm(carInfo, webResult.title);
+        return {
+          ...webResult,
+          videos,
+        };
+      })
+    );
+
+    return new Response(JSON.stringify({ results: resultsWithVideos }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
