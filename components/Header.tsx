@@ -11,7 +11,7 @@ const Header: React.FC = () => {
         </h1>
       </div>
       <p className="mt-4 text-lg text-gray-400">
-        Diagnose car troubles, get likely causes, and find video fixes.
+        AI-powered diagnosis, main dealer price estimates, and video fixes for your car.
       </p>
     </header>
   );
