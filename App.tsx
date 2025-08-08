@@ -1,26 +1,21 @@
 
 import React, { useState, useCallback } from 'react';
-import { AppState, CarInfo, Video, DiagnoseRequest, DiagnosisResult } from './types';
-import { diagnoseIssue, findFixVideos } from './services/geminiService';
+import { AppState, CarInfo, DiagnoseRequest, DiagnosisResult } from './types';
+import { diagnoseIssue } from './services/geminiService';
 import Header from './components/Header';
 import IssueInputForm from './components/IssueInputForm';
 import DiagnosisResults from './components/DiagnosisResults';
-import VideoTutorials from './components/VideoTutorials';
 import LoadingSpinner from './components/LoadingSpinner';
 
 export default function App() {
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
   const [carInfo, setCarInfo] = useState<CarInfo | null>(null);
   const [diagnosisResults, setDiagnosisResults] = useState<DiagnosisResult[]>([]);
-  const [selectedDiagnosis, setSelectedDiagnosis] = useState<DiagnosisResult | null>(null);
-  const [videos, setVideos] = useState<Video[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const handleDiagnose = useCallback(async (request: DiagnoseRequest) => {
     setError(null);
     setDiagnosisResults([]);
-    setVideos([]);
-    setSelectedDiagnosis(null);
     setCarInfo(null);
     setAppState(AppState.DIAGNOSING);
 
@@ -44,51 +39,14 @@ export default function App() {
     }
   }, []);
 
-  const handleFindVideos = useCallback(async (diagnosis: DiagnosisResult) => {
-    if (!carInfo) return;
-    setAppState(AppState.FETCHING_VIDEOS);
-    setSelectedDiagnosis(diagnosis);
-    setError(null);
-    setVideos([]);
-
-    try {
-      const result = await findFixVideos(carInfo, diagnosis.title);
-      if (result && result.videos.length > 0) {
-        setVideos(result.videos);
-        setAppState(AppState.VIDEOS_FOUND);
-      } else {
-        setError("Couldn't find any video tutorials for this issue. You can try another result or start over.");
-        setAppState(AppState.ERROR);
-      }
-    } catch (e) {
-      console.error(e);
-      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred while fetching videos.';
-      setError(`Failed to find videos: ${errorMessage}`);
-      setAppState(AppState.ERROR);
-    }
-  }, [carInfo]);
-
   const handleStartOver = () => {
     setAppState(AppState.IDLE);
     setCarInfo(null);
     setDiagnosisResults([]);
-    setSelectedDiagnosis(null);
-    setVideos([]);
     setError(null);
   };
 
-  const isLoading = appState === AppState.DIAGNOSING || appState === AppState.FETCHING_VIDEOS;
-
-  const getLoadingMessage = () => {
-    switch (appState) {
-      case AppState.DIAGNOSING:
-        return 'Searching for relevant pages...';
-      case AppState.FETCHING_VIDEOS:
-        return 'Searching for tutorials...';
-      default:
-        return 'Loading...';
-    }
-  };
+  const isLoading = appState === AppState.DIAGNOSING;
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center p-4 sm:p-6 lg:p-8">
@@ -104,7 +62,7 @@ export default function App() {
             <div className="flex flex-col items-center justify-center p-12 bg-gray-800/50 rounded-lg">
               <LoadingSpinner />
               <p className="mt-4 text-lg text-gray-300 animate-pulse">
-                {getLoadingMessage()}
+                Diagnosing problem and finding video fixes...
               </p>
             </div>
           )}
@@ -125,20 +83,10 @@ export default function App() {
           )}
 
 
-          {diagnosisResults.length > 0 && (
+          {appState === AppState.DIAGNOSED && diagnosisResults.length > 0 && carInfo && (
             <DiagnosisResults
               results={diagnosisResults}
-              onSelectResult={handleFindVideos}
-              selectedResult={selectedDiagnosis}
-              isDisabled={appState === AppState.FETCHING_VIDEOS || appState === AppState.VIDEOS_FOUND}
-            />
-          )}
-
-          {appState === AppState.VIDEOS_FOUND && !isLoading && carInfo && selectedDiagnosis && (
-            <VideoTutorials
-              videos={videos}
               carInfo={carInfo}
-              diagnosis={selectedDiagnosis}
             />
           )}
 
