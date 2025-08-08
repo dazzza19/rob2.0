@@ -1,5 +1,3 @@
-
-
 export interface CarInfo {
   make: string;
   model: string;
@@ -13,18 +11,24 @@ export interface Video {
   url: string;
 }
 
-export interface DiagnosisResult {
+export interface GroundingChunk {
+  web: {
+    uri: string;
+    title: string;
+  };
+}
+
+export interface Cause {
   title: string;
-  url: string;
-  description: string;
+  reasoning: string;
+  parts: string[];
+  dealerPriceEstimate: string;
   videos: Video[];
 }
 
-export interface DiagnoseRequest {
-  description: string;
-  make: string;
-  model: string;
-  year: string;
+export interface DiagnoseResponse {
+  causes: Cause[];
+  sources: GroundingChunk[];
 }
 
 export enum AppState {
