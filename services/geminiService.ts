@@ -1,7 +1,6 @@
+import type { CarInfo, DiagnoseResponse } from '../types';
 
-import type { CarInfo, DiagnosisResult } from '../types';
-
-export const diagnoseIssue = async (carInfo: CarInfo): Promise<{ results: DiagnosisResult[] }> => {
+export const diagnoseIssue = async (carInfo: CarInfo): Promise<DiagnoseResponse> => {
   const response = await fetch('/.netlify/functions/diagnoseIssue', {
     method: 'POST',
     headers: {
