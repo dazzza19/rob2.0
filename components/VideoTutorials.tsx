@@ -1,14 +1,13 @@
 
-
 import React from 'react';
-import type { Video, CarInfo, DiagnosisResult } from '../types';
+import type { Video, CarInfo, GroundingChunk } from '../types';
 import { YoutubeIcon } from './icons/YoutubeIcon';
 import { EmailIcon } from './icons/EmailIcon';
 
 interface VideoTutorialsProps {
   videos: Video[];
   carInfo: CarInfo;
-  diagnosis: DiagnosisResult;
+  diagnosis: GroundingChunk;
 }
 
 const VideoTutorials: React.FC<VideoTutorialsProps> = ({ videos, carInfo, diagnosis }) => {
@@ -28,8 +27,8 @@ const VideoTutorials: React.FC<VideoTutorialsProps> = ({ videos, carInfo, diagno
       '--- Diagnosis ---',
       '',
       'The video tutorials were found based on the following web page:',
-      `Title: ${diagnosis.title}`,
-      `URL: ${diagnosis.url}`,
+      `Title: ${diagnosis.web.title}`,
+      `URL: ${diagnosis.web.uri}`,
       '',
       '--- Recommended Videos ---',
       '',
