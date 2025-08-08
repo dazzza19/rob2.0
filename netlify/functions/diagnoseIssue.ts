@@ -3,7 +3,7 @@ import type { CarInfo, DiagnosisResult } from '../../types.ts';
 
 const BRAVE_API_KEY = process.env.BRAVE_API_KEY;
 
-// Interface for Brave Web Search API results
+// Interface for Brave Web Search API results (covers both web and discussion types)
 interface BraveWebResult {
   title: string;
   url: string;
@@ -17,7 +17,7 @@ async function getWebResults(query: string): Promise<DiagnosisResult[]> {
     }
     
     try {
-        const braveApiUrl = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&country=gb&count=5&safesearch=moderate`;
+        const braveApiUrl = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&country=gb&count=10&safesearch=moderate`;
         const response = await fetch(braveApiUrl, {
             headers: {
                 'X-Subscription-Token': BRAVE_API_KEY,
@@ -32,10 +32,20 @@ async function getWebResults(query: string): Promise<DiagnosisResult[]> {
         }
 
         const data = await response.json();
-        // Brave web search results are nested under the `web` property
-        const results = data.web?.results || [];
         
-        return results.map((result: BraveWebResult) => ({
+        // Combine results from 'web' and 'discussions' for better diagnosis sources
+        const webResults = data.web?.results || [];
+        const discussionResults = data.discussions?.results || [];
+        
+        // Type assertion as both result types have the shape we need.
+        const combinedResults = [...webResults, ...discussionResults] as BraveWebResult[];
+        
+        // Remove duplicates based on URL and ensure item has a URL
+        const uniqueResults = combinedResults.filter((result, index, self) => 
+            result.url && index === self.findIndex((r) => r.url === result.url)
+        );
+        
+        return uniqueResults.slice(0, 5).map((result: BraveWebResult) => ({
             title: result.title,
             url: result.url,
             description: result.description,
@@ -61,7 +71,8 @@ export default async (req: Request): Promise<Response> => {
 
   try {
     const carInfo: CarInfo = await req.json();
-    const searchQuery = `"${carInfo.year} ${carInfo.make} ${carInfo.model}" ${carInfo.description} common causes forum UK`;
+    // A less restrictive query, targeting forums and problem descriptions
+    const searchQuery = `${carInfo.year} ${carInfo.make} ${carInfo.model} ${carInfo.description} problem forum solution`;
     const results = await getWebResults(searchQuery);
 
     return new Response(JSON.stringify({ results }), {
