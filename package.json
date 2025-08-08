@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "echo \"Build step not required for this setup. Netlify will deploy the static files.\""
+    "build": "mkdir -p dist && cp -r components services index.html index.tsx App.tsx types.ts metadata.json package.json dist/"
   },
   "dependencies": {
     "react": "^19.1.1",
