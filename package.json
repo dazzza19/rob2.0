@@ -6,9 +6,7 @@
   "scripts": {
     "build": "mkdir -p dist && cp index.html dist/ && esbuild index.tsx --bundle --outfile=dist/index.js --jsx=automatic --loader:.ts=tsx --format=esm --external:react --external:react-dom/client --external:react/jsx-runtime"
   },
-  "dependencies": {
-    "@google/genai": "^0.15.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "esbuild": "^0.23.0"
   },
