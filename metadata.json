@@ -1,0 +1,6 @@
+{
+  "name": "ROB 2.0 AI",
+  "description": "An AI-powered assistant that helps you diagnose car problems, identifies likely causes, and finds relevant video tutorials for the fix.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
