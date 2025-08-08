@@ -1,12 +1,14 @@
 {
-  "name": "rob-2.0-ai",
+  "name": "rob-2-ai-app",
   "version": "1.0.0",
-  "private": true,
+  "description": "An AI-powered assistant for car diagnostics.",
+  "type": "module",
   "scripts": {
-    "build": "mkdir -p dist && cp -r components services index.html index.tsx App.tsx types.ts metadata.json package.json dist/"
+    "build": "mkdir -p dist && cp index.html dist/ && esbuild index.tsx --bundle --outfile=dist/index.js --jsx=automatic --loader:.ts=tsx --format=esm"
   },
-  "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1"
-  }
+  "devDependencies": {
+    "esbuild": "^0.23.0"
+  },
+  "author": "",
+  "license": "ISC"
 }
