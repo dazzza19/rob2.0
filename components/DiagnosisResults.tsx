@@ -1,47 +1,52 @@
-
 import React from 'react';
-import type { DiagnosisResult, CarInfo } from '../types';
+import type { Cause, GroundingChunk, CarInfo } from '../types';
 import { YoutubeIcon } from './icons/YoutubeIcon';
 import { EmailIcon } from './icons/EmailIcon';
+import { BuildingIcon } from './icons/BuildingIcon';
+import { MoneyIcon } from './icons/MoneyIcon';
 
 interface DiagnosisResultsProps {
-  results: DiagnosisResult[];
+  causes: Cause[];
+  sources: GroundingChunk[];
   carInfo: CarInfo;
 }
 
-const DiagnosisResults: React.FC<DiagnosisResultsProps> = ({ results, carInfo }) => {
-  if (results.length === 0) return null;
+const DiagnosisResults: React.FC<DiagnosisResultsProps> = ({ causes, sources, carInfo }) => {
+  if (causes.length === 0) return null;
 
-  const handleEmail = (diagnosis: DiagnosisResult) => {
+  const handleEmail = (cause: Cause) => {
     const subject = `ROB 2.0 AI Diagnosis for ${carInfo.year} ${carInfo.make} ${carInfo.model}`;
     
-    const bodyLines = [
+    let bodyLines = [
       'Hi,',
       '',
-      `Here is a potential solution for the ${carInfo.year} ${carInfo.make} ${carInfo.model}.`,
+      `Here is a potential diagnosis for the problem: "${carInfo.description}"`,
       '',
-      'Problem Description:',
-      `"${carInfo.description}"`,
-      '',
-      '--- Suggested Resource ---',
-      `Title: ${diagnosis.title}`,
-      `URL: ${diagnosis.url}`,
-      `Description: ${diagnosis.description}`,
+      '--- AI Diagnosis ---',
+      `Likely Cause: ${cause.title}`,
+      `Reasoning: ${cause.reasoning}`,
+      `Required Parts: ${cause.parts.join(', ') || 'N/A'}`,
+      `Estimated Main Dealer Price: ${cause.dealerPriceEstimate}`,
       ''
     ];
 
-    if (diagnosis.videos.length > 0) {
-      bodyLines.push('--- Recommended Videos ---', '');
-      bodyLines.push(...diagnosis.videos.map(v => `- ${v.title}: ${v.url}`), '');
+    if (cause.videos.length > 0) {
+      bodyLines.push('--- Recommended Videos ---');
+      bodyLines.push(...cause.videos.map(v => `- ${v.title}: ${v.url}`), '');
     }
     
+    if (sources.length > 0) {
+      bodyLines.push('--- Information Sources ---');
+      bodyLines.push(...sources.map(s => `- ${s.web.title}: ${s.web.uri}`), '');
+    }
+
     bodyLines.push('Powered by ROB 2.0 AI.');
 
-    const body = bodyLines.join('\\n');
+    const body = bodyLines.join('\n');
     const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailtoLink;
   };
-
+  
   const getHostname = (url: string) => {
     try {
       return new URL(url).hostname.replace(/^www\./, '');
@@ -51,45 +56,47 @@ const DiagnosisResults: React.FC<DiagnosisResultsProps> = ({ results, carInfo })
   };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white">2. Potential Solutions</h2>
-      <p className="text-sm text-gray-400 -mt-4">Here are some potential solutions, including relevant web pages and video tutorials we found.</p>
+    <div className="space-y-8">
+      <div>
+         <div className="mb-4 p-4 bg-gray-800 rounded-lg border border-gray-700">
+             <h2 className="text-lg font-bold text-white">Vehicle Under Diagnosis</h2>
+             <p className="text-gray-300">{carInfo.year} {carInfo.make} {carInfo.model}</p>
+             <p className="text-gray-400 mt-1 text-sm">Problem: "{carInfo.description}"</p>
+          </div>
+          <h2 className="text-3xl font-bold text-white">AI Diagnosis Results</h2>
+          <p className="text-md text-gray-400 mt-1">Based on web data, the AI has identified the following potential causes.</p>
+      </div>
       
-      {results.map((item, index) => (
-        <div key={item.url || index} className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
-          {/* Web Page Info */}
-          <div className="p-4 sm:p-6 bg-gray-700/30">
-            <div className="flex items-start gap-4">
-              <img
-                src={`https://www.google.com/s2/favicons?sz=32&domain_url=${item.url}`}
-                alt=""
-                width="24"
-                height="24"
-                className="w-6 h-6 rounded-md mt-1 flex-shrink-0"
-                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-              />
-              <div className="flex-grow min-w-0">
-                <a 
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={item.title}
-                  className="text-lg font-semibold text-indigo-300 hover:underline"
-                >
-                  {item.title}
-                </a>
-                <p className="mt-1 text-gray-300 text-sm line-clamp-2" title={item.description}>{item.description}</p>
-                <span className="mt-2 text-xs text-gray-500 truncate block">{getHostname(item.url)}</span>
+      {causes.map((cause, index) => (
+        <div key={index} className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
+          <div className="p-4 sm:p-6">
+            <h3 className="text-xl font-bold text-indigo-300">{index + 1}. {cause.title}</h3>
+            
+            <p className="mt-2 text-gray-300">{cause.reasoning}</p>
+            
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="flex items-start gap-3">
+                <BuildingIcon className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-semibold text-gray-200">Required Parts</h4>
+                  <p className="text-gray-400">{cause.parts.join(', ') || 'None specified'}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <MoneyIcon className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                 <div>
+                  <h4 className="font-semibold text-gray-200">Est. Main Dealer Price</h4>
+                  <p className="text-gray-400">{cause.dealerPriceEstimate}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Associated Videos */}
-          {item.videos.length > 0 && (
+          {cause.videos.length > 0 && (
             <div className="p-4 sm:p-6 border-t border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-400 mb-3">RELATED VIDEO TUTORIALS</h3>
+              <h4 className="text-sm font-semibold text-gray-400 mb-3">RECOMMENDED VIDEO TUTORIALS</h4>
               <div className="space-y-3">
-                {item.videos.map((video) => (
+                {cause.videos.map((video) => (
                   <a
                     key={video.url}
                     href={video.url}
@@ -99,7 +106,7 @@ const DiagnosisResults: React.FC<DiagnosisResultsProps> = ({ results, carInfo })
                   >
                     <YoutubeIcon className="w-7 h-7 text-red-500 flex-shrink-0 mt-1" />
                     <div>
-                      <h4 className="font-medium text-gray-200">{video.title}</h4>
+                      <h5 className="font-medium text-gray-200">{video.title}</h5>
                       <p className="text-sm text-gray-400 line-clamp-2">{video.summary}</p>
                     </div>
                   </a>
@@ -108,18 +115,30 @@ const DiagnosisResults: React.FC<DiagnosisResultsProps> = ({ results, carInfo })
             </div>
           )}
 
-          {/* Actions */}
           <div className="p-4 bg-gray-800/50 border-t border-gray-700 text-right">
              <button
-                onClick={() => handleEmail(item)}
-                className="inline-flex items-center gap-2 py-1.5 px-3 border border-transparent text-xs font-medium rounded-md text-white bg-gray-600 hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-gray-800 transition-colors"
+                onClick={() => handleEmail(cause)}
+                className="inline-flex items-center gap-2 py-1.5 px-3 border border-transparent text-xs font-medium rounded-md text-white bg-gray-600 hover:bg-gray-500"
              >
                <EmailIcon className="w-4 h-4" />
-               Email this Solution
+               Email this Diagnosis
              </button>
           </div>
         </div>
       ))}
+
+      {sources.length > 0 && (
+          <div className="mt-8">
+              <h3 className="text-lg font-semibold text-gray-300 mb-3">Information Sources</h3>
+              <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 space-y-2 text-sm">
+                  {sources.map((source, index) => (
+                      <a href={source.web.uri} key={index} target="_blank" rel="noopener noreferrer" className="block text-gray-400 hover:text-indigo-300 truncate transition-colors">
+                          <span className="font-medium">[{getHostname(source.web.uri)}]</span> {source.web.title}
+                      </a>
+                  ))}
+              </div>
+          </div>
+      )}
     </div>
   );
 };
