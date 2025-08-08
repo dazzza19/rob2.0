@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
-import type { DiagnoseRequest } from '../types';
+import type { CarInfo } from '../types';
 import { CarIcon } from './icons/CarIcon';
 
 interface IssueInputFormProps {
-  onDiagnose: (request: DiagnoseRequest) => void;
+  onDiagnose: (request: CarInfo) => void;
   disabled: boolean;
 }
 
